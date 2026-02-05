@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快帶科技 - 費用請款系統</title>
+    <style>
+        :root {
+            --border-color: #000;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 操作介面 */
+        .ui-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 900px;
+            border-top: 4px solid #007bff;
+        }
+
+        .btn-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .btn-add { background-color: #28a745; color: white; }
+        .btn-print { background-color: #007bff; color: white; }
+        .btn-delete { background-color: #f44336; color: white; padding: 4px 8px; font-size: 12px; }
+
+        /* 請款單主體 */
+        .print-area {
+            background: white;
+            width: 210mm;
+            padding: 12mm;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .company-name {
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .form-title {
+            font-size: 18px;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        td {
+            border: 1px solid var(--border-color);
+            padding: 6px 8px;
+            vertical-align: middle;
+            word-wrap: break-word;
+        }
+
+        /* 基本資訊列 (不換行) */
+        .info-label {
+            width: 130px;
+            white-space: nowrap;
+        }
+
+        .info-input-cell {
+            width: auto;
+        }
+
+        .date-cell {
+            width: 45%;
+            text-align: right;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+
+        .date-unit {
+            margin-left: 12px;
+        }
+
+        /* 標題列與合計列：高度縮小以突顯 */
+        .header-row td, .total-row td {
+            height: 32px; /* 較小的高度 */
+            font-weight: bold;
+            text-align: center;
+            background-color: #fafafa; /* 輕微底色輔助視覺(列印時可不顯) */
+        }
+
+        /* 輸入內容列：維持適度空間並自適應 */
+        .data-row td {
+            height: auto;
+            min-height: 60px; /* 給予基本的高度感 */
+            vertical-align: top;
+            padding: 10px 8px;
+        }
+
+        .editable-area {
+            width: 100%;
+            min-height: 40px;
+            outline: none;
+            text-align: left;
+            white-space: pre-wrap;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        /* 輸入框樣式 */
+        input[type="text"], input[type="number"] {
+            width: 95%;
+            border: none;
+            font-size: 16px;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .amount-input {
+            text-align: right;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        /* 刪除按鈕定位 */
+        .action-wrapper {
+            position: relative;
+        }
+
+        .btn-delete-pos {
+            position: absolute;
+            right: -60px;
+            top: 10px;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .ui-container, .btn-delete-pos { display: none !important; }
+            .print-area { box-shadow: none; width: 100%; padding: 0; }
+            .header-row td, .total-row td { background-color: transparent !important; }
+            input::placeholder { color: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-container">
+        <h2>快帶科技費用請款系統</h2>
+        <p>💡 <b>摘要欄位</b>會隨輸入內容自動變長；<b>標題列與合計列</b>已縮減高度以優化排版。</p>
+        <div class="btn-group">
+            <button class="btn-add" onclick="addRow()">＋ 新增一筆項目</button>
+            <button class="btn-print" onclick="window.print()">🖨️ 確認並列印單據</button>
+        </div>
+    </div>
+
+    <div class="print-area">
+        <div class="form-header">
+            <div class="company-name">快帶科技有限公司</div>
+            <div class="form-title">員工費用請款單<br>Employee Expense Request Form</div>
+        </div>
+
+        <table>
+            <!-- 資訊與日期 -->
+            <tr>
+                <td class="info-label">部門 Department</td>
+                <td class="info-input-cell"><input type="text" placeholder="輸入部門名稱"></td>
+                <td rowspan="2" class="date-cell">
+                    <span class="date-unit"><span id="y"></span> 年 Year</span>
+                    <span class="date-unit"><span id="m"></span> 月 Month</span>
+                    <span class="date-unit"><span id="d"></span> 日 Day</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="info-label">申請人 Applicant</td>
+                <td class="info-input-cell"><input type="text" placeholder="輸入姓名"></td>
+            </tr>
+
+            <!-- 標題列 (縮小高度) -->
+            <tr class="header-row">
+                <td colspan="2" style="width: 70%;">摘要 Abstract / 憑證黏貼 Voucher Paste</td>
+                <td style="width: 30%;">金額 Amount</td>
+            </tr>
+
+            <!-- 項目輸入區 (自適應高度) -->
+            <tbody id="items-body">
+                <tr class="data-row">
+                    <td colspan="2">
+                        <div class="editable-area" contenteditable="true" placeholder="請輸入摘要..."></div>
+                    </td>
+                    <td class="action-wrapper">
+                        <input type="number" class="amount-input" value="0" oninput="calcTotal()">
+                        <div class="btn-delete-pos">
+                            <button class="btn-delete" onclick="removeRow(this)">刪除</button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+
+            <!-- 合計列 (縮小高度) -->
+            <tr class="total-row">
+                <td colspan="2">合計 Total</td>
+                <td id="total-display" style="text-align: right; padding-right: 15px;">0</td>
+            </tr>
+
+            <!-- 簽署區 -->
+            <tr style="height: 70px;">
+                <td colspan="2" style="vertical-align: top; padding-top: 10px;">主管 Manager：</td>
+                <td style="vertical-align: top; padding-top: 10px;">申請人 Applicant：</td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        // 設定今日日期
+        const date = new Date();
+        document.getElementById('y').innerText = date.getFullYear();
+        document.getElementById('m').innerText = date.getMonth() + 1;
+        document.getElementById('d').innerText = date.getDate();
+
+        // 新增行
+        function addRow() {
+            const tbody = document.getElementById('items-body');
+            const tr = document.createElement('tr');
+            tr.className = 'data-row';
+            tr.innerHTML = `
+                <td colspan="2">
+                    <div class="editable-area" contenteditable="true"></div>
+                </td>
+                <td class="action-wrapper">
+                    <input type="number" class="amount-input" value="0" oninput="calcTotal()">
+                    <div class="btn-delete-pos">
+                        <button class="btn-delete" onclick="removeRow(this)">刪除</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // 刪除行
+        function removeRow(btn) {
+            const rows = document.querySelectorAll('.data-row');
+            if (rows.length > 1) {
+                btn.closest('tr').remove();
+                calcTotal();
+            } else {
+                alert("必須保留至少一項內容。");
+            }
+        }
+
+        // 計算總計
+        function calcTotal() {
+            const inputs = document.querySelectorAll('.amount-input');
+            let sum = 0;
+            inputs.forEach(input => {
+                sum += parseFloat(input.value) || 0;
+            });
+            document.getElementById('total-display').innerText = sum.toLocaleString();
+        }
+    </script>
+</body>
+</html>
